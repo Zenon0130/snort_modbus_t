@@ -47,4 +47,4 @@ except KeyboardInterrupt:
     logging.info("Server is shutting down.")
 finally:
     s.close()
-    logging.info("Socket closed."
+    logging.info("Socket closed.")
