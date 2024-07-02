@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 def send_modbus_request():
     try:
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDU01ReadCoilsRequest(startAddr=0, count=1)
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDU01ReadCoilsRequest(startAddr=0, quantity=1)
         request_data = bytes(modbus_request)
         
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
