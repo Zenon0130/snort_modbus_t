@@ -4,4 +4,4 @@ sudo apt install -y build-essential libpcap-dev libpcre3-dev libdumbnet-dev biso
 sudo snort -T -c /etc/snort/snort.conf -i ens160
 
 # Offical run
-sudo snort -T -c /etc/snort/snort.conf -i ens160
+sudo snort -c /etc/snort/snort.conf -i ens160
