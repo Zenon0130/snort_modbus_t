@@ -47,8 +47,19 @@ try:
                     break
 
                 logging.debug('Received data: %s', repr(data))
+                
+                # 確保收到的數據是有效的 Modbus 封包
+                if len(data) < 7:  # 最小 Modbus TCP 封包長度
+                    logging.warning("Received invalid Modbus packet, too short.")
+                    break
+
                 response = handle_modbus_request(data)
                 logging.debug('Sending response: %s', repr(response))
+                
+                if not response:
+                    logging.error("Failed to generate a valid Modbus response.")
+                    break
+
                 client.send(response)
         except Exception as e:
             logging.error("Error during communication with %s: %s", addr, e)
