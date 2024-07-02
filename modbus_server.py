@@ -13,6 +13,7 @@ def handle_modbus_request(data):
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('0.0.0.0', 502))
 s.listen(5)
+print("Server is listening on port 502...")
 
 while True:
     client, addr = s.accept()
@@ -21,10 +22,13 @@ while True:
     while True:
         data = client.recv(1024)
         if not data:
+            print('No data received. Closing connection.')
             break
 
-        print('Received', repr(data))
+        print('Received data:', repr(data))
         response = handle_modbus_request(data)
+        print('Sending response:', repr(response))
         client.send(response)
 
     client.close()
+    print('Connection closed.')
