@@ -7,10 +7,22 @@ logging.basicConfig(level=logging.DEBUG)
 
 def handle_modbus_request(data):
     try:
+        # 解析 Modbus 請求
         modbus_request = ModbusADURequest(data)
         logging.debug("Received Modbus request: %s", modbus_request.show(dump=True))
+        
+        # 構建 Modbus 回應
+        if modbus_request.haslayer(ModbusPDU01ReadCoilsRequest):
+            response_pdu = ModbusPDU01ReadCoilsResponse(bits=[1]*modbus_request[ModbusPDU01ReadCoilsRequest].count)
+        else:
+            response_pdu = ModbusPDUException(ExceptionCode=0x01)  # 示範性的異常回應
 
-        modbus_response = ModbusADUResponse(transId=modbus_request.transId) / ModbusPDU01ReadCoilsResponse()
+        modbus_response = ModbusADUResponse(
+            transId=modbus_request.transId,
+            protoId=modbus_request.protoId,
+            len=len(response_pdu)+1,
+            unitId=modbus_request.unitId
+        ) / response_pdu
         response_data = bytes(modbus_response)
         return response_data
     except Exception as e:
