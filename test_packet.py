@@ -7,9 +7,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 def send_modbus_request():
     try:
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=6, unitId=1) / ModbusPDU05WriteSingleCoilRequest(Addr=0, value=1)
+        # 創建Modbus請求
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=12, unitId=1) / ModbusPDU05WriteSingleCoilRequest(addr=0x0000, value=0xFF00)
         request_data = bytes(modbus_request)
         
+        # 使用socket發送請求
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('10.103.152.8', 502))
         logging.info("Connected to server.")
