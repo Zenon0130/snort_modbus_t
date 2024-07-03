@@ -17,7 +17,7 @@ def handle_modbus_request(data):
         elif modbus_request.haslayer(ModbusPDU15WriteFileRecordRequest):
             # 處理寫文件記錄請求，這裡我們假設處理成功
             record_data = modbus_request[ModbusPDU15WriteFileRecordRequest].recordData
-            response_pdu = ModbusPDUWriteFileRecordResponse(recordData=record_data)
+            response_pdu = ModbusPDU15WriteFileRecordResponse(recordData=record_data)
         else:
             response_pdu = ModbusPDUException(ExceptionCode=0x01)  # 示範性的異常回應
 

