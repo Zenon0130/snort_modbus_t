@@ -1,5 +1,10 @@
 sudo apt install -y build-essential libpcap-dev libpcre3-dev libdumbnet-dev bison flex zlib1g-dev libdap-dev luajit libluajit-5.1-dev libssl-dev
 
+# snort install
+./configure
+make
+sudo make install
+
 # This is for test
 sudo snort -T -c /etc/snort/snort.conf -i ens160
 
