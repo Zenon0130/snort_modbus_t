@@ -1,6 +1,8 @@
 import time
 import os
 import re
+import subprocess
+import psutil
 
 # 全局變數來維護 SID 計數器
 sid_counter = 1000020
@@ -14,45 +16,80 @@ def extract_ip(alert_line):
 
 def clear_whitelist():
     """在開始時清空 whitelist.rules 文件。"""
-    with open('/etc/snort/rules/whitelist.rules', 'w') as f:
-        f.write('')  # 清空文件內容
+    with open('/etc/snort/rules/white_list.rules', 'w') as f:
+        f.write('')
+    with open('/var/log/snort/alert', 'w') as f:
+        f.write('')
 
 def update_whitelist(triggered_ips):
     """更新 whitelist.rules 文件，將新觸發的 IP 添加到白名單。"""
     global sid_counter
-    with open('/etc/snort/rules/whitelist.rules', 'a') as f:
+    with open('/etc/snort/rules/white_list.rules', 'a') as f:
         for ip in triggered_ips:
-            f.write(f'pass ip {ip} any -> any any (msg:"Allow all traffic from triggered IP"; sid:{sid_counter}; rev:1;)\n')
-            sid_counter += 1  # 為每個新 IP 生成唯一 SID
+            rule = (f'pass ip {ip} any -> any any (msg:"Allow all traffic from triggered IP"; sid:{sid_counter}; rev:1;)\n')
+            f.write(rule)
+            print(f'Added rule: {rule.strip()}')
+            sid_counter += 1
+
+def stop_snort():
+    """Stop the Snort process."""
+    for proc in psutil.process_iter(['pid', 'cmdline']):
+        if '/etc/snort/snort.conf' in proc.cmdline() and 'gerp' not in proc.cmdline()[0]:
+            try:
+#                proc.terminate()
+                proc.kill()
+                proc.wait(timeout=5)  # Wait for termination (adjust timeout if necessary)
+                print(f"Stopped Snort process with PID: {proc.pid}")
+            except psutil.TimeoutExpired:
+                print(f"Timeout expired while terminating Snort process with PID: {proc.pid}")
+                            
+def reload_snort():
+    """Reload Snort with specific configuration and interface."""
+    try:
+        stop_snort()
+        subprocess.run(['sudo', 'snort', '-c', '/etc/snort/snort.conf', '-i', 'ens160', '-D'], check=True)
+        print("Started new Snort process")
+    except subprocess.CalledProcessError as e:
+        print(f"Error reloading Snort: {e}")
 
 def monitor_alerts():
     alert_file = '/var/log/snort/alert'
     triggered_ips = set()
     last_position = 0
 
-    # 清空 whitelist.rules 文件
     clear_whitelist()
 
     while True:
         try:
             with open(alert_file, 'r') as f:
                 f.seek(last_position)
-                while True:
-                    line = f.readline()
-                    if not line:
-                        break
-                    if "1000010" in line:  # 檢查特定規則 ID
-                        triggered_ip = extract_ip(line)
-                        if triggered_ip:
-                            triggered_ips.add(triggered_ip)
-                            update_whitelist(triggered_ips)
-                            triggered_ips.clear()  # 清空觸發的 IP 列表，只在更新後清空
-                            os.system('sudo snort -c /etc/snort/snort.conf -R')  # 重新加載 Snort 規則
-                last_position = f.tell()  # 更新文件指針位置
+                lines = f.readlines()  # Read all lines from last_position onwards
+                for line_index, line in enumerate(lines):
+                    if "1000010" in line:
+                        print(f'Found alert: {line.strip()}')
+                        # read two lines
+                        if line_index + 2 < len(lines):
+                            next_line = lines[line_index + 2]
+                            triggered_ip = extract_ip(next_line)
+                            if triggered_ip:
+                                print(f'Triggered IP: {triggered_ip}')
+                                triggered_ips.add(triggered_ip)
+                                update_whitelist(triggered_ips)
+                                triggered_ips.clear()
+                                reload_snort()
+                last_position = f.tell()
+        except FileNotFoundError:
+            print(f"File '{alert_file}' not found.")
         except Exception as e:
             print(f"Error: {e}")
 
-        time.sleep(10)  # 每 10 秒鐘檢查一次文件
+        time.sleep(10)
 
 if __name__ == "__main__":
-    monitor_alerts()
+    try:
+        monitor_alerts()
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt detected. Stopping Snort and exiting.")
+        stop_snort()
+        clear_whitelist()
+    print('Done.')

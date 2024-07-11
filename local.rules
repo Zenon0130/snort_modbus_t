@@ -18,5 +18,5 @@
 #-------------
 # LOCAL RULES
 #-------------
-alert tcp any any -> any 502 (msg:"Detected specific pattern"; content:"|15 20 00 00 04 00 00 00 FF FE FF FF FB 7F 00|"; sid:1000010; rev:1;)
+alert tcp any any -> any 502 (msg:"Detected specific pattern"; content:"|15 20 06 00 04 00 00 FF FE FF FF FB 7F 00|"; sid:1000010; rev:1;)
 drop tcp any any -> any 502 (msg:"Drop all traffic to port 502 matching specific pattern"; content:"specific-pattern"; sid:1000011; rev:1;)
