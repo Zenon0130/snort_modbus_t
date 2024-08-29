@@ -13,20 +13,30 @@ def handle_modbus_request(data):
         
         # 構建 Modbus 回應
         if modbus_request.haslayer(ModbusPDU01ReadCoilsRequest):
-            response_pdu = ModbusPDU01ReadCoilsResponse(bits=[1]*modbus_request[ModbusPDU01ReadCoilsRequest].count)
+            response_pdu = ModbusPDU01ReadCoilsResponse()
+        elif modbus_request.haslayer(ModbusPDU03ReadHoldingRegistersRequest):
+            response_pdu = ModbusPDU03ReadHoldingRegistersResponse()
+        elif modbus_request.haslayer(ModbusPDU05WriteSingleCoilRequest):
+            response_pdu = ModbusPDU05WriteSingleCoilResponse()
+        elif modbus_request.haslayer(ModbusPDU06WriteSingleRegisterRequest):
+            response_pdu = ModbusPDU06WriteSingleRegisterResponse()
+        elif modbus_request.haslayer(ModbusPDU10WriteMultipleRegistersRequest):
+            response_pdu = ModbusPDU10WriteMultipleRegistersResponse()
         elif modbus_request.haslayer(ModbusPDU15WriteFileRecordRequest):
-            # 處理寫文件記錄請求，這裡我們假設處理成功
-            record_data = modbus_request[ModbusPDU15WriteFileRecordRequest].recordData
-            response_pdu = ModbusPDU15WriteFileRecordResponse(recordData=record_data)
+            response_pdu = ModbusPDU15WriteFileRecordResponse()
         else:
-            response_pdu = ModbusPDUException(ExceptionCode=0x01)  # 示範性的異常回應
+            # 構建異常回應
+            exception_code = 0x01  # 示範性的異常碼 (非法功能)
+            exception_data = bytes([modbus_request.unitId, exception_code])
+            response_pdu = Raw(load=exception_data)
 
         modbus_response = ModbusADUResponse(
             transId=modbus_request.transId,
             protoId=modbus_request.protoId,
-            len=len(response_pdu)+1,
+            len=len(response_pdu) + 1,  # 加上 Unit Identifier 的 1 字節長度
             unitId=modbus_request.unitId
         ) / response_pdu
+        
         response_data = bytes(modbus_response)
         return response_data
     except Exception as e:
@@ -36,11 +46,13 @@ def handle_modbus_request(data):
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('0.0.0.0', 502))
 s.listen(5)
+
 logging.info("Server is listening on port 502...")
 
 try:
     while True:
         client, addr = s.accept()
+        client.settimeout(5)
         logging.info('Connected by %s', addr)
 
         try:

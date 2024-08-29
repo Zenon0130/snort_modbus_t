@@ -14,12 +14,15 @@ def extract_ip(alert_line):
         return match.group(1)
     return None
 
-def clear_whitelist():
+def clear_list():
     """在開始時清空 whitelist.rules 文件。"""
     with open('/etc/snort/rules/white_list.rules', 'w') as f:
         f.write('')
     with open('/var/log/snort/alert', 'w') as f:
         f.write('')
+    for file_name in os.listdir('/var/log/snort'):
+        if file_name.startswith('snort.log.'):
+            os.remove(os.path.join('/var/log/snort', file_name))
 
 def update_whitelist(triggered_ips):
     """更新 whitelist.rules 文件，將新觸發的 IP 添加到白名單。"""
@@ -57,7 +60,7 @@ def monitor_alerts():
     triggered_ips = set()
     last_position = 0
 
-    clear_whitelist()
+    clear_list()
 
     while True:
         try:
@@ -91,5 +94,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nKeyboard interrupt detected. Stopping Snort and exiting.")
         stop_snort()
-        clear_whitelist()
+        clear_list()
     print('Done.')
