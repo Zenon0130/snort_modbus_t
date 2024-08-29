@@ -50,7 +50,7 @@ def reload_snort():
     """Reload Snort with specific configuration and interface."""
     try:
         stop_snort()
-        subprocess.run(['sudo', 'snort', '-c', '/etc/snort/snort.conf', '-i', 'ens160', '-D'], check=True)
+        subprocess.run(['sudo', 'snort', '-Q', '--daq', 'nfq', '--daq-var', 'queue=1', '-c', '/etc/snort/snort.conf'], check=True)
         print("Started new Snort process")
     except subprocess.CalledProcessError as e:
         print(f"Error reloading Snort: {e}")
